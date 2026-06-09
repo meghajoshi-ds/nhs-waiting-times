@@ -61,6 +61,27 @@ body {
 }
 .header-stat small { opacity: 0.9; font-weight: 500; white-space: nowrap; }
 
+/* ── nation switch ────────────────────────────────────────────────────────── */
+.nation-switch {
+  display: inline-flex; gap: 6px; background: #fff; border-radius: 12px;
+  padding: 6px; box-shadow: var(--shadow); margin-bottom: 14px;
+}
+.nation-switch label {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 9px 22px; border-radius: 9px; font-weight: 700; font-size: 15px;
+  color: var(--grey); transition: all 0.2s ease;
+}
+.nation-switch label:hover { background: #f0f6fc; color: var(--nhs-blue); }
+.nation-switch input { display: none; }
+.nation-switch input:checked + * ,
+.nation-switch label:has(input:checked) {
+  color: #fff; background: linear-gradient(120deg, var(--nhs-blue), var(--nhs-bright));
+}
+/* fallback: Dash renders <label><input>text</label>; color the checked label */
+.nation-switch label:has(input:checked) {
+  box-shadow: 0 4px 12px rgba(0,94,184,0.35);
+}
+
 /* ── tabs ─────────────────────────────────────────────────────────────────── */
 .tabs {
   background: var(--card); border-radius: var(--radius);
@@ -78,6 +99,11 @@ body {
   color: #fff !important;
   background: linear-gradient(120deg, var(--nhs-blue), var(--nhs-bright)) !important;
   box-shadow: 0 4px 12px rgba(0,94,184,0.35);
+}
+.tabs.scotland .tab:hover { color: #0065BD !important; }
+.tabs.scotland .tab--selected {
+  background: linear-gradient(120deg, #002244, #0065BD) !important;
+  box-shadow: 0 4px 12px rgba(0,101,189,0.35);
 }
 
 /* ── KPI cards ────────────────────────────────────────────────────────────── */

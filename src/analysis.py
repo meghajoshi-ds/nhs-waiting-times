@@ -259,6 +259,65 @@ def scotland_board_heatmap(months=24):
     return df
 
 
+def scotland_seasonal_index():
+    """Average Scotland A&E attendances by calendar month (pre-COVID 2015-2019)."""
+    df = _q("""SELECT CAST(STRFTIME('%m', period) AS INTEGER) AS month,
+                      AVG(month_att) AS avg_att FROM (
+                  SELECT period, SUM(att_total) AS month_att
+                  FROM scotland_ae_monthly
+                  WHERE period >= '2015-01-01' AND period < '2020-01-01'
+                  GROUP BY period)
+               GROUP BY month ORDER BY month""")
+    df["month_name"] = pd.to_datetime(df["month"], format="%m").dt.strftime("%b")
+    df["index"] = 100 * df["avg_att"] / df["avg_att"].mean()
+    return df
+
+
+def scotland_covid_comparison():
+    """Pre / during / post-COVID averages for Scotland A&E."""
+    return _q("""
+        SELECT phase,
+               ROUND(AVG(pct), 1)  AS avg_4hr_performance,
+               ROUND(AVG(att))     AS avg_monthly_attendances FROM (
+            SELECT period,
+                   CASE WHEN period < '2020-03-01' THEN '1 Pre-COVID'
+                        WHEN period <= '2021-06-01' THEN '2 During COVID'
+                        ELSE '3 Post-COVID' END AS phase,
+                   100.0*SUM(within4hr_total)/SUM(att_total) AS pct,
+                   SUM(att_total) AS att
+            FROM scotland_ae_monthly WHERE period >= '2017-01-01'
+            GROUP BY period)
+        GROUP BY phase ORDER BY phase""")
+
+
+def scotland_longwaits(start="2011-07-01"):
+    """National 8-hour and 12-hour A&E waits over time (Scotland-specific data)."""
+    df = _q("""SELECT period,
+                      SUM(att_total) AS att_total,
+                      SUM(over8hr_total)  AS over8hr,
+                      SUM(over12hr_total) AS over12hr,
+                      100.0*SUM(over8hr_total)/SUM(att_total)  AS pct_over8hr,
+                      100.0*SUM(over12hr_total)/SUM(att_total) AS pct_over12hr
+               FROM scotland_ae_monthly WHERE period >= :s
+               GROUP BY period ORDER BY period""", {"s": start})
+    df["period"] = pd.to_datetime(df["period"])
+    return df
+
+
+def scotland_longwaits_by_board(months=12):
+    """Avg 12-hour wait share by board over the latest N months (worst first)."""
+    return _q("""
+        WITH latest AS (
+            SELECT DISTINCT period FROM scotland_ae_monthly
+            ORDER BY period DESC LIMIT :months)
+        SELECT hb_name,
+               ROUND(100.0*SUM(over12hr_total)/SUM(att_total), 2) AS pct_over12hr,
+               SUM(over12hr_total) AS total_over12hr
+        FROM scotland_ae_monthly
+        WHERE period IN (SELECT period FROM latest) AND att_total > 0
+        GROUP BY hb_name ORDER BY pct_over12hr DESC""", {"months": months})
+
+
 def nations_comparison(start="2012-01-01"):
     """England vs Scotland national all-type 4-hour performance, aligned monthly."""
     eng = _q("""SELECT period, pct_within_4hrs AS england

@@ -43,29 +43,40 @@ rows (by provider × specialty), and **NHS Scotland A&E across 14 health boards,
 
 ## Dashboard pages
 
+A **nation switcher** (England · Scotland) at the top swaps between two full,
+co-equal tab sets, with a shared **vs** comparison and **Methodology** tab.
+
+**🏴󠁧󠁢󠁥󠁮󠁧󠁿 England**
+
 1. **⚡ Find shortest wait (decision support)** — pick a specialty and region; get a
    plain-language recommendation, the fastest providers ranked with improving/
-   worsening trend colours, each provider's percentile and % vs the national
-   average, and the **weeks you could save** by switching. Turns the data into a tool.
-2. **National overview** — 4-hour performance vs the 95% target with the COVID
-   period shaded, attendance volumes, and headline KPI cards.
-3. **Trends & statistics** — seasonal decomposition of the performance series,
-   pre-COVID attendance seasonality, a pre/during/post-COVID comparison table,
-   and the Mann-Kendall trend-test result.
-4. **Trust explorer** — pick any trust; see its Type-1 performance vs the national
-   line, monthly attendance volume, a 12-month data table, and the 15
-   lowest-performing trusts.
-5. **Regional** — a region × month heatmap and a latest-month ranking of the seven
-   NHS England regions.
-6. **RTT specialties** — national waiting-list size vs 18-week compliance, the worst
-   specialties by 18-week breach, and a multi-select specialty trend explorer.
-7. **🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland** — NHS Scotland A&E performance with an **England-vs-Scotland**
-   comparison, KPI cards, a 14-board ranking, a health-board explorer, and a
-   board × month heatmap (Public Health Scotland data).
-8. **A&E ↔ RTT correlation** — trust-level scatter of A&E 4-hour vs RTT 18-week
-   performance with a fitted line and Pearson r / p-value.
-9. **ℹ️ Methodology** — data source, last-refresh date, update frequency, what each
-   metric means, and why a personal wait may differ from the published figure.
+   worsening trend colours, percentile and % vs national average, the **weeks you
+   could save**, a **head-to-head hospital comparison**, and trust indicators.
+2. **National overview** — 4-hour performance vs the 95% target (COVID shaded),
+   attendance volumes, and headline KPI cards.
+3. **Trends & statistics** — seasonal decomposition, pre-COVID seasonality, a
+   pre/during/post-COVID table, and the Mann-Kendall trend-test result.
+4. **Trust explorer** — any trust's Type-1 performance vs the national line,
+   attendance volume, a 12-month table, and the 15 lowest-performing trusts.
+5. **Regional** — a region × month heatmap and a latest-month region ranking.
+6. **RTT specialties** — waiting-list size vs 18-week compliance, worst specialties
+   by breach, and a multi-select specialty trend explorer.
+7. **A&E ↔ RTT correlation** — trust-level scatter with a fitted line and Pearson r.
+
+**🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland** (Public Health Scotland A&E — full parity)
+
+1. **National overview** — Scotland 4-hour performance (all-types + Type 1) and
+   attendance volume back to 2007, with KPI cards.
+2. **Trends & statistics** — seasonal decomposition, seasonality, COVID comparison
+   and the Mann-Kendall test for Scotland.
+3. **Board explorer** — any of the 14 health boards vs the Scotland average, plus
+   attendance and a 12-month table.
+4. **Boards** — a board ranking and a board × month heatmap.
+5. **Long waits (8h / 12h)** — Scotland-specific detail England's headline series
+   doesn't publish: share of A&E waits over 8 and 12 hours, nationally and by board.
+
+**Shared** — **🆚 England vs Scotland** comparison (both nations on one axis) and an
+**ℹ️ Methodology** tab covering both data sources, refresh dates and caveats.
 
 ---
 

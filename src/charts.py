@@ -304,6 +304,87 @@ def nations_comparison_chart():
     return _layout(fig, "England vs Scotland — A&E 4-hour performance")
 
 
+def scotland_attendance_chart():
+    df = analysis.scotland_national("2008-01-01")
+    fig = go.Figure(go.Scatter(
+        x=df["period"], y=df["att_total"], mode="lines", name="Attendances",
+        line=dict(color=SCOT_NAVY, width=2.5, shape="spline", smoothing=0.4),
+        fill="tozeroy", fillcolor="rgba(0,101,189,0.10)",
+        hovertemplate="%{x|%b %Y}: %{y:,.0f}<extra></extra>"))
+    _covid_band(fig)
+    _timeaxis(fig)
+    fig.update_yaxes(title="Monthly A&E attendances")
+    return _layout(fig, "Scotland A&E attendance volume")
+
+
+def scotland_decomposition_chart():
+    df = analysis.scotland_national("2008-01-01")
+    dec = stats.decompose(df, "pct_within_4hrs").reset_index()
+    fig = go.Figure()
+    for col, color, name in [("observed", SCOT_NAVY, "Observed"),
+                             ("trend", RED, "Trend"), ("seasonal", GREEN, "Seasonal"),
+                             ("residual", GREY, "Residual")]:
+        fig.add_trace(go.Scatter(x=dec["period"], y=dec[col], mode="lines",
+                                 name=name, line=dict(color=color, width=1.8)))
+    fig.update_yaxes(title="% within 4 hours (decomposed)")
+    return _layout(fig, "Seasonal decomposition of Scotland 4-hour performance",
+                   height=460)
+
+
+def scotland_seasonal_index_chart():
+    df = analysis.scotland_seasonal_index()
+    colors = [RED if v > 100 else SCOT_NAVY for v in df["index"]]
+    fig = go.Figure(go.Bar(
+        x=df["month_name"], y=df["index"], marker_color=colors, marker_line_width=0,
+        text=df["index"].round(0), textposition="outside",
+        hovertemplate="%{x}: index %{y:.0f}<extra></extra>"))
+    fig.add_hline(y=100, line=dict(color=GREY, dash="dot"))
+    fig.update_yaxes(title="Seasonal index (100 = average month)")
+    return _layout(fig, "Scotland A&E attendance seasonality (pre-COVID 2015-2019)")
+
+
+def scotland_longwaits_chart():
+    df = analysis.scotland_longwaits()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["pct_over8hr"], mode="lines", name="Over 8 hours",
+        line=dict(color=AMBER, width=2.5, shape="spline", smoothing=0.4),
+        fill="tozeroy", fillcolor="rgba(255,184,28,0.12)",
+        hovertemplate="Over 8h: %{y:.1f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["pct_over12hr"], mode="lines", name="Over 12 hours",
+        line=dict(color=RED, width=2.5, shape="spline", smoothing=0.4),
+        fill="tozeroy", fillcolor="rgba(218,41,28,0.10)",
+        hovertemplate="Over 12h: %{y:.1f}%<extra></extra>"))
+    _covid_band(fig)
+    _timeaxis(fig)
+    fig.update_yaxes(title="% of A&E attendances", ticksuffix="%")
+    return _layout(fig, "Scotland A&E long waits — over 8 and 12 hours")
+
+
+def scotland_longwaits_board_chart():
+    df = analysis.scotland_longwaits_by_board().sort_values("pct_over12hr")
+    fig = go.Figure(go.Bar(
+        x=df["pct_over12hr"], y=df["hb_name"], orientation="h",
+        marker=dict(color=df["pct_over12hr"], colorscale=[[0, AMBER], [1, RED]],
+                    line_width=0),
+        text=df["pct_over12hr"].round(1).astype(str) + "%", textposition="outside",
+        hovertemplate="NHS %{y}<br>%{x:.2f}% over 12h<extra></extra>"))
+    fig.update_xaxes(title="% waiting over 12 hours (last 12 months)", ticksuffix="%")
+    return _layout(fig, "12-hour A&E waits by health board", height=480)
+
+
+def scotland_board_attendance_chart(hb_name):
+    df = analysis.scotland_board_timeseries(hb_name)
+    fig = go.Figure(go.Bar(
+        x=df["period"], y=df["att_total"],
+        marker=dict(color=df["att_total"], colorscale=[[0, CYAN], [1, SCOT_DARK]],
+                    line_width=0),
+        hovertemplate="%{x|%b %Y}: %{y:,.0f}<extra></extra>"))
+    fig.update_yaxes(title="Attendances / month")
+    return _layout(fig, "Monthly A&E attendances", height=320)
+
+
 def scotland_ranking_chart():
     df = analysis.scotland_board_ranking().sort_values("avg_performance")
     fig = go.Figure(go.Bar(
