@@ -334,9 +334,9 @@ def tab_methodology():
                      f"{REFRESH['months']} months",
                      f"from {REFRESH['earliest_month']}", "📚"),
             kpi_card("Update frequency", "Monthly",
-                     "NHS England publishes ~6 wks in arrears", "🔄"),
-            kpi_card("Source", "NHS England",
-                     "official published statistics", "🏛️"),
+                     "published ~6 wks in arrears", "🔄"),
+            kpi_card("Sources", "England + Scotland",
+                     "NHS England · Public Health Scotland", "🏛️"),
         ]),
         html.Div(className="callout", children=[
             html.B("Why might this differ from my own experience?  "),
@@ -366,10 +366,21 @@ def tab_methodology():
                          "treatment standard. The NHS constitutional target is 92%."),
             _method_item("4-hour A&E performance",
                          "Share of A&E attendances admitted, transferred or "
-                         "discharged within 4 hours. The operational standard is 95%."),
+                         "discharged within 4 hours. The operational standard is 95% "
+                         "in both England and Scotland."),
             _method_item("6-month trend",
                          "Change in a provider's median wait versus six months "
                          "earlier. ▼ means the wait fell (improving)."),
+            _method_item("Scotland health board",
+                         "NHS Scotland A&E is reported by Public Health Scotland for "
+                         "14 territorial health boards (e.g. NHS Lothian). Figures are "
+                         "aggregated here from treatment-location level to board level "
+                         "and cover Type 1 (major ED) and Type 3 (minor injury) units."),
+            _method_item("England vs Scotland comparison",
+                         "Both nations use the same 4-hour standard, so all-type "
+                         "performance is broadly comparable — but coding, department "
+                         "mix and reporting calendars differ slightly, so read the "
+                         "comparison as indicative of direction, not an exact gap."),
         ]),
         html.Div(className="card method", children=[
             html.H4("Caveats & limitations", className="card-title"),
@@ -378,9 +389,12 @@ def tab_methodology():
                         "travel distance — a provider in your region may still be far away."),
                 html.Li("Some providers don't report every month; gaps are excluded "
                         "rather than guessed."),
-                html.Li("Revised figures are used where NHS England has republished them."),
+                html.Li("Revised figures are used where the source body has republished them."),
+                html.Li("England RTT/A&E and Scotland A&E come from separate national "
+                        "collections (NHS England and Public Health Scotland) with their "
+                        "own definitions; cross-nation figures are indicative."),
                 html.Li("This tool is for information only and is not medical advice "
-                        "or affiliated with NHS England."),
+                        "or affiliated with NHS England or Public Health Scotland."),
             ]),
         ]),
         html.Div(className="card method", children=[
@@ -391,6 +405,9 @@ def tab_methodology():
                         target="_blank")),
                 html.Li(dcc.Link("NHS England — RTT (Referral to Treatment) Waiting Times",
                         href="https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+                        target="_blank")),
+                html.Li(dcc.Link("Public Health Scotland — A&E Activity & Waiting Times",
+                        href="https://publichealthscotland.scot/publications/accident-and-emergency-activity-and-waiting-times/",
                         target="_blank")),
             ]),
         ]),
