@@ -1,0 +1,84 @@
+/* NHS waiting times dashboard — custom Dash styling */
+:root {
+  --nhs-blue: #005EB8;
+  --nhs-dark: #003087;
+  --nhs-red: #DA291C;
+  --nhs-grey: #768692;
+  --bg: #f0f4f5;
+  --card: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: "Frutiger", Arial, Helvetica, sans-serif;
+  color: #212b32;
+}
+
+.app { max-width: 1180px; margin: 0 auto; padding: 0 16px 48px; }
+
+/* header */
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--nhs-blue); color: #fff;
+  padding: 22px 28px; margin: 0 -16px 18px;
+  border-bottom: 4px solid var(--nhs-dark);
+}
+.header h1 { margin: 0; font-size: 26px; font-weight: 700; }
+.header .subtitle { margin: 4px 0 0; opacity: 0.85; font-size: 14px; }
+.header-stat { text-align: right; }
+.header-stat span { font-size: 34px; font-weight: 700; display: block; }
+.header-stat small { opacity: 0.85; }
+
+/* tabs */
+.tabs { border-bottom: 1px solid #d8dde0; margin-bottom: 18px; }
+.tabs .tab {
+  border: none !important; background: transparent !important;
+  color: var(--nhs-grey) !important; font-weight: 600; padding: 12px 18px !important;
+}
+.tabs .tab--selected {
+  color: var(--nhs-blue) !important;
+  border-bottom: 3px solid var(--nhs-blue) !important;
+}
+
+/* KPI cards */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpi {
+  background: var(--card); border-radius: 8px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-top: 3px solid var(--nhs-blue);
+}
+.kpi-label { font-size: 12px; color: var(--nhs-grey); text-transform: uppercase; letter-spacing: 0.4px; }
+.kpi-value { font-size: 26px; font-weight: 700; color: var(--nhs-dark); margin: 6px 0 2px; }
+.kpi-sub { font-size: 12px; color: var(--nhs-grey); }
+
+/* cards & graphs */
+.card {
+  background: var(--card); border-radius: 8px; padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px;
+}
+.card-title { margin: 6px 4px 12px; color: var(--nhs-dark); font-size: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* controls */
+.controls { background: var(--card); border-radius: 8px; padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+.controls label { font-weight: 600; display: block; margin-bottom: 8px; color: var(--nhs-dark); }
+
+/* callout */
+.callout {
+  background: #e8f1fb; border-left: 4px solid var(--nhs-blue);
+  padding: 14px 18px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;
+}
+.lead { color: #425563; font-size: 15px; margin: 4px 4px 16px; }
+
+/* footer */
+.footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #d8dde0;
+  color: var(--nhs-grey); font-size: 13px; text-align: center; }
+
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .header { flex-direction: column; gap: 12px; text-align: center; }
+}
