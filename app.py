@@ -16,7 +16,7 @@ import pandas as pd
 from dash import Dash, dcc, html, dash_table, Input, Output
 import dash
 
-from src import analysis, stats, charts
+from src import analysis, stats, charts, decision
 from src.charts import BLUE
 
 warnings.simplefilter("ignore")
@@ -31,6 +31,9 @@ _nat = analysis.national_performance("2015-01-01")
 MK = stats.mann_kendall(_nat["pct_within_4hrs"].dropna())
 TRUSTS = analysis.trust_list()
 SPECIALTIES = analysis.rtt_specialties()
+DEC_SPECIALTIES = decision.specialties()
+REGION_OPTIONS = decision.regions()
+REFRESH = decision.last_refresh()
 DEFAULT_SPECS = ["Trauma and Orthopaedic Service", "Ear Nose and Throat Service",
                  "Ophthalmology Service", "Gynaecology Service",
                  "General Surgery Service"]
@@ -193,6 +196,109 @@ def update_rtt(specialties):
     return charts.rtt_trend_chart(specialties)
 
 
+# ── tab: find the shortest wait (decision support) ────────────────────────────
+def tab_decision():
+    return html.Div([
+        html.P("Don't just see the wait — act on it. Pick a specialty and (optionally) "
+               "your region to find the fastest providers, how far they beat the "
+               "national average, whether they're improving, and the weeks you could "
+               "save by choosing one.", className="lead"),
+        html.Div(className="controls grid-2", children=[
+            html.Div([
+                html.Label("Specialty"),
+                dcc.Dropdown(id="dec-specialty", options=DEC_SPECIALTIES,
+                             value="Ear Nose and Throat Service"
+                             if "Ear Nose and Throat Service" in DEC_SPECIALTIES
+                             else DEC_SPECIALTIES[0], clearable=False),
+            ]),
+            html.Div([
+                html.Label("Region"),
+                dcc.Dropdown(id="dec-region", options=REGION_OPTIONS,
+                             value="ALL", clearable=False),
+            ]),
+        ]),
+        dcc.Loading(html.Div(id="decision-output"), type="dot", color=BLUE),
+    ])
+
+
+def _arrow(direction, delta):
+    if direction == "improving":
+        return f"▼ {abs(delta):.1f} wks (improving)"
+    if direction == "worsening":
+        return f"▲ {abs(delta):.1f} wks (worsening)"
+    return "– stable"
+
+
+@app.callback(Output("decision-output", "children"),
+              Input("dec-specialty", "value"), Input("dec-region", "value"))
+def update_decision(specialty, region):
+    s = decision.recommendation_summary(specialty, region)
+    if s is None:
+        return html.Div("No data available for this selection.", className="card")
+
+    spec_short = specialty.replace(" Service", "")
+    saved_txt = (f"choosing it over the {s['region']} average would save about "
+                 f"{s['weeks_saved']:.0f} weeks" if s["weeks_saved"] >= 1
+                 else "it is already close to the regional average")
+    headline = (f"For {spec_short} in {s['region']}, the median wait is about "
+                f"{s['scope_avg']:.0f} weeks across {s['n_providers']} providers. "
+                f"The fastest is {s['fastest_name']} at {s['fastest_wait']:.0f} "
+                f"weeks ({abs(s['fastest_vs_national'])}% below the national average) "
+                f"— {saved_txt}.")
+
+    df = decision.provider_recommendations(specialty, region)
+    table = pd.DataFrame({
+        "Provider": df["provider_name"].str.title(),
+        "Region": df["region"],
+        "Median wait": df["median_wait_wks"].round(1).astype(str) + " wks",
+        "vs national": df["vs_national_pct"].map(
+            lambda v: f"{v:+.0f}%" if pd.notna(v) else "—"),
+        "6-month trend": [_arrow(d, t) for d, t in
+                          zip(df["direction"], df["trend_6m"].fillna(0))],
+        "Percentile": df["percentile"].map(
+            lambda p: f"Top {100 - int(p)}%" if p >= 50 else f"{int(p)}th"),
+        "Waiting list": df["total_waiting"].map("{:,.0f}".format),
+    })
+
+    return html.Div([
+        html.Div(className="callout", children=[
+            html.B("💡 Recommendation:  "), html.Span(headline)]),
+        html.Div(className="kpi-row", children=[
+            kpi_card("National avg wait", f"{s['national_avg']:.0f} wks",
+                     "patient-weighted median", "🇬🇧"),
+            kpi_card(f"{s['region']} avg", f"{s['scope_avg']:.0f} wks",
+                     f"{s['n_providers']} providers", "📍"),
+            kpi_card("Fastest provider", f"{s['fastest_wait']:.0f} wks",
+                     s["fastest_name"][:26], "⚡", "good"),
+            kpi_card("Weeks you could save", f"{s['weeks_saved']:.0f}",
+                     "vs regional average", "⏱️",
+                     "good" if s["weeks_saved"] >= 1 else ""),
+        ]),
+        graph(charts.fastest_providers_chart(specialty, region)),
+        graph(charts.specialty_trend_chart(specialty)),
+        html.Div(className="card", children=[
+            html.H4(f"All providers · {spec_short} · {s['region']} "
+                    f"(fastest first, {s['latest_month']})", className="card-title"),
+            dash_table.DataTable(
+                data=table.to_dict("records"),
+                columns=[{"name": c, "id": c} for c in table.columns],
+                page_size=15, sort_action="native", filter_action="native",
+                style_cell={"fontFamily": "Inter, Arial", "fontSize": 12,
+                            "padding": "8px", "textAlign": "left"},
+                style_header={"backgroundColor": "#005EB8", "color": "white",
+                              "fontWeight": "600"},
+                style_data_conditional=[
+                    {"if": {"filter_query": "{6-month trend} contains 'improving'",
+                            "column_id": "6-month trend"},
+                     "color": "#009639", "fontWeight": "600"},
+                    {"if": {"filter_query": "{6-month trend} contains 'worsening'",
+                            "column_id": "6-month trend"},
+                     "color": "#DA291C", "fontWeight": "600"},
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#f4f8fb"}]),
+        ]),
+    ])
+
+
 # ── tab: correlation ──────────────────────────────────────────────────────────
 def tab_correlation():
     fig, res = charts.correlation_chart()
@@ -211,6 +317,84 @@ def tab_correlation():
     ])
 
 
+# ── tab: methodology & transparency ───────────────────────────────────────────
+def _method_item(term, defn):
+    return html.Div(className="method-item", children=[
+        html.Span(term, className="method-term"), html.Span(defn)])
+
+
+def tab_methodology():
+    return html.Div([
+        html.Div(className="kpi-row", children=[
+            kpi_card("Data last refreshed", REFRESH["latest_month"],
+                     "latest published RTT month", "🗓️"),
+            kpi_card("History covered",
+                     f"{REFRESH['months']} months",
+                     f"from {REFRESH['earliest_month']}", "📚"),
+            kpi_card("Update frequency", "Monthly",
+                     "NHS England publishes ~6 wks in arrears", "🔄"),
+            kpi_card("Source", "NHS England",
+                     "official published statistics", "🏛️"),
+        ]),
+        html.Div(className="callout", children=[
+            html.B("Why might this differ from my own experience?  "),
+            html.Span(
+                "These are published, provider-level figures. Your personal wait "
+                "depends on your specific condition, clinical urgency, the exact "
+                "clinic, and when you were referred. A provider's median means half "
+                "of patients waited less and half waited longer — individual waits "
+                "vary widely around it. Treat these numbers as a guide for "
+                "conversations with your GP, not a guarantee."),
+        ]),
+        html.Div(className="card method", children=[
+            html.H4("What the numbers mean", className="card-title"),
+            _method_item("RTT incomplete pathways",
+                         "Patients still waiting to start treatment at month-end, "
+                         "by provider and specialty (treatment function)."),
+            _method_item("Median wait",
+                         "The middle wait in weeks — half of patients on the list "
+                         "have waited less, half longer. Used as the headline figure "
+                         "because it is less skewed by very long waits than the mean."),
+            _method_item("National / regional average",
+                         "Patient-weighted average of provider medians (providers "
+                         "with bigger lists count more). Labelled as an average, not "
+                         "an exact national median, which needs the full distribution."),
+            _method_item("% within 18 weeks",
+                         "Share of the waiting list within the 18-week referral-to-"
+                         "treatment standard. The NHS constitutional target is 92%."),
+            _method_item("4-hour A&E performance",
+                         "Share of A&E attendances admitted, transferred or "
+                         "discharged within 4 hours. The operational standard is 95%."),
+            _method_item("6-month trend",
+                         "Change in a provider's median wait versus six months "
+                         "earlier. ▼ means the wait fell (improving)."),
+        ]),
+        html.Div(className="card method", children=[
+            html.H4("Caveats & limitations", className="card-title"),
+            html.Ul([
+                html.Li("\"Region\" is the NHS England region of the provider, not "
+                        "travel distance — a provider in your region may still be far away."),
+                html.Li("Some providers don't report every month; gaps are excluded "
+                        "rather than guessed."),
+                html.Li("Revised figures are used where NHS England has republished them."),
+                html.Li("This tool is for information only and is not medical advice "
+                        "or affiliated with NHS England."),
+            ]),
+        ]),
+        html.Div(className="card method", children=[
+            html.H4("Sources", className="card-title"),
+            html.Ul([
+                html.Li(dcc.Link("NHS England — A&E Attendances & Emergency Admissions",
+                        href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/",
+                        target="_blank")),
+                html.Li(dcc.Link("NHS England — RTT (Referral to Treatment) Waiting Times",
+                        href="https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/",
+                        target="_blank")),
+            ]),
+        ]),
+    ])
+
+
 # ── layout ────────────────────────────────────────────────────────────────────
 app.layout = html.Div(className="app", children=[
     html.Header(className="header", children=[
@@ -224,13 +408,15 @@ app.layout = html.Div(className="app", children=[
             html.Small(f"4-hr performance · {KPI['latest_period']}"),
         ]),
     ]),
-    dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
+    dcc.Tabs(id="tabs", value="decision", className="tabs", children=[
+        dcc.Tab(label="⚡  Find shortest wait", value="decision"),
         dcc.Tab(label="🏥  National overview", value="overview"),
         dcc.Tab(label="📊  Trends & statistics", value="trends"),
         dcc.Tab(label="🏨  Trust explorer", value="trust"),
         dcc.Tab(label="🗺️  Regional", value="regional"),
         dcc.Tab(label="🩺  RTT specialties", value="rtt"),
         dcc.Tab(label="🔗  A&E ↔ RTT correlation", value="corr"),
+        dcc.Tab(label="ℹ️  Methodology", value="method"),
     ]),
     dcc.Loading(html.Main(id="tab-content", className="content"),
                 type="circle", color=BLUE),
@@ -244,12 +430,14 @@ app.layout = html.Div(className="app", children=[
 @app.callback(Output("tab-content", "children"), Input("tabs", "value"))
 def render_tab(tab):
     return {
+        "decision": tab_decision,
         "overview": tab_overview,
         "trends": tab_trends,
         "trust": tab_trust,
         "regional": tab_regional,
         "rtt": tab_rtt,
         "corr": tab_correlation,
+        "method": tab_methodology,
     }[tab]()
 
 

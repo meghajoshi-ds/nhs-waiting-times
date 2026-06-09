@@ -6,7 +6,7 @@ Plotly figure factories. Every function returns a go.Figure so the Dash app
 import plotly.graph_objects as go
 import plotly.express as px
 
-from . import analysis, stats
+from . import analysis, stats, decision
 
 # NHS-ish palette
 BLUE = "#005EB8"      # NHS blue
@@ -256,6 +256,52 @@ def rtt_national_chart():
         yaxis2=dict(title="% within 18 weeks", overlaying="y", side="right",
                     range=[0, 100], ticksuffix="%", showgrid=False))
     return _layout(fig, "National RTT waiting list size vs 18-week compliance")
+
+
+# ── Decision support ──────────────────────────────────────────────────────────
+def fastest_providers_chart(specialty, region="ALL", top_n=12):
+    """Horizontal bar of the fastest providers, green=improving, red=worsening."""
+    df = decision.provider_recommendations(specialty, region)
+    if df.empty:
+        return _layout(go.Figure().add_annotation(
+            text="No data for this selection", showarrow=False), height=300)
+    national = float(df["national_avg"].iloc[0])
+    df = df.head(top_n).iloc[::-1]                  # fastest at top
+    colors = df["direction"].map({"improving": GREEN, "worsening": RED,
+                                  "stable": GREY}).fillna(GREY)
+    fig = go.Figure(go.Bar(
+        x=df["median_wait_wks"], y=df["provider_name"].str.title(),
+        orientation="h", marker=dict(color=colors, line_width=0),
+        text=df["median_wait_wks"].round(1).astype(str) + " wks",
+        textposition="outside",
+        customdata=df[["direction", "percentile"]].values,
+        hovertemplate="%{y}<br>%{x:.1f} weeks · %{customdata[0]}"
+                      "<br>faster than %{customdata[1]:.0f}% of providers<extra></extra>"))
+    fig.add_vline(x=national, line=dict(color=DARK, dash="dash"),
+                  annotation_text=f"National avg {national:.0f} wks",
+                  annotation_position="top")
+    region_lbl = decision.region_name(region)
+    fig.update_xaxes(title="Median wait (weeks) — shorter is better")
+    return _layout(fig, f"Fastest providers · {specialty.replace(' Service','')} · "
+                        f"{region_lbl}", height=460)
+
+
+def specialty_trend_chart(specialty):
+    """National median wait + 18-week compliance trend for a specialty."""
+    df = decision.specialty_national_trend(specialty)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["median_wait"], mode="lines+markers",
+        name="Median wait (weeks)", line=dict(color=BLUE, width=3, shape="spline",
+                                              smoothing=0.4),
+        fill="tozeroy", fillcolor="rgba(0,94,184,0.07)", marker=dict(size=5),
+        hovertemplate="%{x|%b %Y}: %{y:.1f} weeks<extra></extra>"))
+    fig.add_hline(y=18, line=dict(color=RED, dash="dash", width=1),
+                  annotation_text="18-week standard", annotation_position="top right",
+                  annotation_font_color=RED)
+    fig.update_yaxes(title="Median wait (weeks)")
+    return _layout(fig, f"National median wait over time · "
+                        f"{specialty.replace(' Service','')}", height=340)
 
 
 def correlation_chart():

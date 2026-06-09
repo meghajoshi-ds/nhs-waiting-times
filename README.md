@@ -5,7 +5,10 @@
 An end-to-end data project on **NHS England's published A&E and Referral-to-Treatment
 (RTT) waiting time statistics**. It ingests the raw NHS files into SQLite, runs
 SQL + statistical analysis (seasonal decomposition, Mann-Kendall trend test,
-correlation), and serves an interactive **Plotly Dash** dashboard.
+correlation), and serves an interactive **Plotly Dash** dashboard — including a
+**decision-support tool** that tells patients which providers are fastest and how
+many weeks they could save, plus a generator for **SEO-friendly static pages**
+(e.g. *"ENT waiting times in London"*).
 
 > *Analysed 5+ years of NHS England A&E and RTT waiting-time data across 237 trusts
 > using Python and SQL, identifying a statistically significant decline in 4-hour
@@ -24,7 +27,9 @@ correlation), and serves an interactive **Plotly Dash** dashboard.
 | Analysis | SQL + `pandas` | `src/analysis.py` |
 | Statistics | `statsmodels`, `scipy`, `numpy` | `src/stats.py` |
 | Visualisation | Plotly | `src/charts.py` |
+| Decision support | SQL + `pandas` | `src/decision.py` |
 | Dashboard | Dash | `app.py` |
+| SEO pages | static HTML generator | `generate_seo_pages.py` |
 
 **Data loaded:** 12,403 trust-month A&E rows (237 trusts, 60 months, Apr 2020–Mar 2025),
 187 months of national A&E time series (Aug 2010–Feb 2026), and 141,504 RTT
@@ -34,20 +39,60 @@ incomplete-pathway rows (36 months, by provider × specialty).
 
 ## Dashboard pages
 
-1. **National overview** — 4-hour performance vs the 95% target with the COVID
+1. **⚡ Find shortest wait (decision support)** — pick a specialty and region; get a
+   plain-language recommendation, the fastest providers ranked with improving/
+   worsening trend colours, each provider's percentile and % vs the national
+   average, and the **weeks you could save** by switching. Turns the data into a tool.
+2. **National overview** — 4-hour performance vs the 95% target with the COVID
    period shaded, attendance volumes, and headline KPI cards.
-2. **Trends & statistics** — seasonal decomposition of the performance series,
+3. **Trends & statistics** — seasonal decomposition of the performance series,
    pre-COVID attendance seasonality, a pre/during/post-COVID comparison table,
    and the Mann-Kendall trend-test result.
-3. **Trust explorer** — pick any trust; see its Type-1 performance vs the national
+4. **Trust explorer** — pick any trust; see its Type-1 performance vs the national
    line, monthly attendance volume, a 12-month data table, and the 15
    lowest-performing trusts.
-4. **Regional** — a region × month heatmap and a latest-month ranking of the seven
+5. **Regional** — a region × month heatmap and a latest-month ranking of the seven
    NHS England regions.
-5. **RTT specialties** — national waiting-list size vs 18-week compliance, the worst
+6. **RTT specialties** — national waiting-list size vs 18-week compliance, the worst
    specialties by 18-week breach, and a multi-select specialty trend explorer.
-6. **A&E ↔ RTT correlation** — trust-level scatter of A&E 4-hour vs RTT 18-week
+7. **A&E ↔ RTT correlation** — trust-level scatter of A&E 4-hour vs RTT 18-week
    performance with a fitted line and Pearson r / p-value.
+8. **ℹ️ Methodology** — data source, last-refresh date, update frequency, what each
+   metric means, and why a personal wait may differ from the published figure.
+
+---
+
+## Decision support & trends
+
+The headline upgrade over a plain dashboard: instead of just *showing* "Provider A:
+18 weeks", the tool **answers "what should I do?"**
+
+- **Fastest nearby providers** — ranked shortest-wait-first within a chosen region.
+- **% difference from the national average** — is this provider better or worse, and by how much.
+- **Estimated weeks saved by switching** — fastest provider vs the regional average.
+- **Improving vs worsening** — every provider's 6-month median-wait trend (▼ improving / ▲ worsening).
+- **Percentile ranking** — "faster than 92% of providers".
+
+All of this is built in `src/decision.py` and surfaced on the *Find shortest wait* tab.
+
+---
+
+## SEO static pages
+
+Search engines index JavaScript single-page apps poorly, so `generate_seo_pages.py`
+pre-renders **crawlable static HTML** — one page per specialty and per
+specialty × region (≈136 pages), each with a unique `<title>`, meta description,
+Open Graph tags, FAQ **JSON-LD structured data** (for rich results), a key-stats
+table, and a link through to the live tool. It also emits `index.html`,
+`sitemap.xml` and `robots.txt`.
+
+```bash
+python generate_seo_pages.py --base-url https://your-app.onrender.com
+# -> seo_pages/ : ent-waiting-times-london.html, cardiology-waiting-times.html, ...
+```
+
+These target real search demand like *"cardiology waiting times in London"* or
+*"NHS ENT waiting times"*.
 
 ---
 
@@ -66,6 +111,9 @@ python -m src.ingest            # add --no-rtt for a faster A&E-only build
 
 # 4. run the dashboard
 python app.py                   # http://127.0.0.1:8050
+
+# 5. (optional) generate the SEO static pages
+python generate_seo_pages.py --base-url https://your-app.onrender.com
 ```
 
 ---
@@ -111,10 +159,12 @@ For a hosted deploy, commit a pre-built `data/nhs_waiting.db` (a few MB) or run
 nhs-waiting-times/
 ├── app.py                  Dash dashboard (gunicorn entrypoint: app:server)
 ├── scrape_nhs_data.py      Download raw A&E + RTT files from NHS England
+├── generate_seo_pages.py   Build SEO static pages (seo_pages/)
 ├── src/
 │   ├── database.py         SQLite schema + connection
 │   ├── ingest.py           Parse raw files -> SQLite
 │   ├── analysis.py         SQL-backed analysis functions
+│   ├── decision.py         Decision support: fastest providers, trends, time saved
 │   ├── stats.py            Mann-Kendall, seasonal decomposition, Pearson
 │   └── charts.py           Plotly figure factories
 ├── notebooks/

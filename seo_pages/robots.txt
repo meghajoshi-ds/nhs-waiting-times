@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://nhs-waiting-times.onrender.com/seo/sitemap.xml
