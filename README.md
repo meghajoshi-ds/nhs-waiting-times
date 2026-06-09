@@ -1,5 +1,7 @@
 # NHS England A&E and RTT Waiting Times — Analysis & Dashboard
 
+![NHS waiting times dashboard](assets/dashboard.png)
+
 An end-to-end data project on **NHS England's published A&E and Referral-to-Treatment
 (RTT) waiting time statistics**. It ingests the raw NHS files into SQLite, runs
 SQL + statistical analysis (seasonal decomposition, Mann-Kendall trend test,

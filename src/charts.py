@@ -62,7 +62,7 @@ def _timeaxis(fig):
             dict(step="all", label="All"),
         ],
         bgcolor="#eef3f7", activecolor=BLUE, font=dict(size=11),
-        x=0, y=1.08, xanchor="left"))
+        x=1, y=1.12, xanchor="right"))
     return fig
 
 
