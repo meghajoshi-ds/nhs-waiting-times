@@ -17,6 +17,7 @@ from dash import Dash, dcc, html, dash_table, Input, Output
 import dash
 
 from src import analysis, stats, charts
+from src.charts import BLUE
 
 warnings.simplefilter("ignore")
 
@@ -37,8 +38,10 @@ DEFAULT_SPECS = [s for s in DEFAULT_SPECS if s in SPECIALTIES] or SPECIALTIES[:5
 
 
 # ── reusable bits ─────────────────────────────────────────────────────────────
-def kpi_card(label, value, sub=""):
-    return html.Div(className="kpi", children=[
+def kpi_card(label, value, sub="", icon="", tone=""):
+    cls = "kpi" + (f" {tone}" if tone else "")
+    return html.Div(className=cls, children=[
+        html.Div(icon, className="kpi-icon"),
         html.Div(label, className="kpi-label"),
         html.Div(value, className="kpi-value"),
         html.Div(sub, className="kpi-sub"),
@@ -56,19 +59,21 @@ def graph(fig, gid=None):
 # ── tab: national overview ────────────────────────────────────────────────────
 def tab_overview():
     yoy = KPI["yoy"]
-    yoy_txt = f"{yoy:+.1f} pts YoY" if yoy is not None else ""
+    yoy_txt = f"{yoy:+.1f} pts" if yoy is not None else "n/a"
+    yoy_tone = "good" if (yoy or 0) >= 0 else "bad"
+    yoy_icon = "📈" if (yoy or 0) >= 0 else "📉"
     return html.Div([
         html.Div(className="kpi-row", children=[
             kpi_card("Latest 4-hour performance",
-                     f"{KPI['latest_pct']:.1f}%", KPI["latest_period"]),
-            kpi_card("Change vs a year ago", yoy_txt or "n/a",
-                     "all A&E types"),
+                     f"{KPI['latest_pct']:.1f}%", KPI["latest_period"], "🚑"),
+            kpi_card("Change vs a year ago", yoy_txt, "all A&E types",
+                     yoy_icon, yoy_tone),
             kpi_card("Monthly attendances",
-                     f"{KPI['latest_att']/1e6:.2f}m", KPI["latest_period"]),
+                     f"{KPI['latest_att']/1e6:.2f}m", KPI["latest_period"], "👥"),
             kpi_card("Best month on record",
-                     f"{KPI['best'][1]:.1f}%", KPI["best"][0]),
+                     f"{KPI['best'][1]:.1f}%", KPI["best"][0], "🏆", "good"),
             kpi_card("Worst month on record",
-                     f"{KPI['worst'][1]:.1f}%", KPI["worst"][0]),
+                     f"{KPI['worst'][1]:.1f}%", KPI["worst"][0], "⚠️", "bad"),
         ]),
         graph(charts.national_performance_chart()),
         graph(charts.attendance_chart()),
@@ -220,14 +225,15 @@ app.layout = html.Div(className="app", children=[
         ]),
     ]),
     dcc.Tabs(id="tabs", value="overview", className="tabs", children=[
-        dcc.Tab(label="National overview", value="overview"),
-        dcc.Tab(label="Trends & statistics", value="trends"),
-        dcc.Tab(label="Trust explorer", value="trust"),
-        dcc.Tab(label="Regional", value="regional"),
-        dcc.Tab(label="RTT specialties", value="rtt"),
-        dcc.Tab(label="A&E ↔ RTT correlation", value="corr"),
+        dcc.Tab(label="🏥  National overview", value="overview"),
+        dcc.Tab(label="📊  Trends & statistics", value="trends"),
+        dcc.Tab(label="🏨  Trust explorer", value="trust"),
+        dcc.Tab(label="🗺️  Regional", value="regional"),
+        dcc.Tab(label="🩺  RTT specialties", value="rtt"),
+        dcc.Tab(label="🔗  A&E ↔ RTT correlation", value="corr"),
     ]),
-    html.Main(id="tab-content", className="content"),
+    dcc.Loading(html.Main(id="tab-content", className="content"),
+                type="circle", color=BLUE),
     html.Footer(className="footer", children=[
         "Source: NHS England published A&E and RTT statistics · ",
         "Built with Python, SQLite, pandas, statsmodels & Plotly Dash",
