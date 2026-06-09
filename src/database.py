@@ -70,6 +70,23 @@ CREATE TABLE IF NOT EXISTS rtt_monthly (
     PRIMARY KEY (period, provider_code, treatment_function)
 );
 
+CREATE TABLE IF NOT EXISTS scotland_ae_monthly (
+    period            TEXT NOT NULL,          -- ISO date, first of month
+    hb_code           TEXT NOT NULL,          -- health board code, e.g. S08000024
+    hb_name           TEXT,                   -- e.g. 'Lothian'
+    att_total         INTEGER DEFAULT 0,
+    within4hr_total   INTEGER DEFAULT 0,
+    over4hr_total     INTEGER DEFAULT 0,
+    over8hr_total     INTEGER DEFAULT 0,
+    over12hr_total    INTEGER DEFAULT 0,
+    att_type1         INTEGER DEFAULT 0,
+    within4hr_type1   INTEGER DEFAULT 0,
+    pct_within_4hrs   REAL,                   -- all department types
+    pct_within_4hrs_t1 REAL,                  -- Type 1 (major ED) only
+    PRIMARY KEY (period, hb_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scot_period ON scotland_ae_monthly(period);
 CREATE INDEX IF NOT EXISTS idx_ae_period   ON ae_monthly(period);
 CREATE INDEX IF NOT EXISTS idx_ae_org      ON ae_monthly(org_name);
 CREATE INDEX IF NOT EXISTS idx_rtt_period  ON rtt_monthly(period);
@@ -91,7 +108,7 @@ def init_schema(conn):
 
 def reset(conn):
     """Drop and recreate every table -- used for a clean rebuild."""
-    for tbl in ("ae_monthly", "ae_national", "rtt_monthly"):
+    for tbl in ("ae_monthly", "ae_national", "rtt_monthly", "scotland_ae_monthly"):
         conn.execute(f"DROP TABLE IF EXISTS {tbl}")
     conn.commit()
     init_schema(conn)

@@ -29,6 +29,17 @@ ROOT = database.ROOT
 AE_DIR = ROOT / "data" / "raw" / "ae_monthly"
 RTT_DIR = ROOT / "data" / "raw" / "rtt_monthly"
 TS_DIR = ROOT / "data" / "raw" / "timeseries"
+SCOT_DIR = ROOT / "data" / "raw" / "scotland" / "ae_monthly"
+
+# Public Health Scotland health-board codes -> names
+SCOT_BOARDS = {
+    "S08000015": "Ayrshire and Arran", "S08000016": "Borders",
+    "S08000017": "Dumfries and Galloway", "S08000019": "Forth Valley",
+    "S08000020": "Grampian", "S08000022": "Highland", "S08000024": "Lothian",
+    "S08000025": "Orkney", "S08000026": "Shetland", "S08000028": "Western Isles",
+    "S08000029": "Fife", "S08000030": "Tayside",
+    "S08000031": "Greater Glasgow and Clyde", "S08000032": "Lanarkshire",
+}
 
 MONTHS = {
     "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
@@ -243,6 +254,54 @@ def load_rtt(conn):
     print(f"   loaded {total:,} rows total")
 
 
+# ── Scotland A&E (Public Health Scotland) ─────────────────────────────────────
+def load_scotland_ae(conn):
+    f = SCOT_DIR / "scotland_ae_monthly_activity.csv"
+    if not f.exists():
+        print("\n[scotland_ae_monthly] file not found -- skipping")
+        return
+    print(f"\n[scotland_ae_monthly] {f.name}")
+    df = pd.read_csv(f, dtype=str)
+    # one total per attendance, use the 'All' category to avoid double counting
+    df = df[df["AttendanceCategory"] == "All"].copy()
+    df["period"] = pd.to_datetime(df["Month"], format="%Y%m").dt.strftime("%Y-%m-01")
+
+    for c in ["NumberOfAttendancesAll", "NumberWithin4HoursAll",
+              "NumberOver4HoursAll", "NumberOver8HoursEpisode",
+              "NumberOver12HoursEpisode"]:
+        df[c] = to_int(df.get(c))
+    is_t1 = df["DepartmentType"] == "Type 1"
+
+    g = df.groupby(["period", "HBT"])
+    out = pd.DataFrame({
+        "att_total": g["NumberOfAttendancesAll"].sum(),
+        "within4hr_total": g["NumberWithin4HoursAll"].sum(),
+        "over4hr_total": g["NumberOver4HoursAll"].sum(),
+        "over8hr_total": g["NumberOver8HoursEpisode"].sum(),
+        "over12hr_total": g["NumberOver12HoursEpisode"].sum(),
+    })
+    t1 = df[is_t1].groupby(["period", "HBT"]).agg(
+        att_type1=("NumberOfAttendancesAll", "sum"),
+        within4hr_type1=("NumberWithin4HoursAll", "sum"))
+    out = out.join(t1).reset_index().rename(columns={"HBT": "hb_code"})
+    out[["att_type1", "within4hr_type1"]] = out[["att_type1", "within4hr_type1"]].fillna(0)
+
+    out["hb_name"] = out["hb_code"].map(SCOT_BOARDS).fillna(out["hb_code"])
+    out["pct_within_4hrs"] = (100 * out["within4hr_total"] / out["att_total"]).where(
+        out["att_total"] > 0)
+    out["pct_within_4hrs_t1"] = (100 * out["within4hr_type1"] / out["att_type1"]).where(
+        out["att_type1"] > 0)
+
+    cols = ["period", "hb_code", "hb_name", "att_total", "within4hr_total",
+            "over4hr_total", "over8hr_total", "over12hr_total", "att_type1",
+            "within4hr_type1", "pct_within_4hrs", "pct_within_4hrs_t1"]
+    out = out[cols].drop_duplicates(subset=["period", "hb_code"])
+    out.to_sql("scotland_ae_monthly", conn, if_exists="append", index=False)
+    print(f"   loaded {len(out):,} rows, {out['period'].nunique()} months, "
+          f"{out['hb_code'].nunique()} health boards "
+          f"({out['period'].min()} -> {out['period'].max()})")
+
+
 # ── orchestrator ──────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(description="Build nhs_waiting.db from raw files")
@@ -256,6 +315,7 @@ def main():
 
     load_ae_monthly(conn)
     load_ae_national(conn)
+    load_scotland_ae(conn)
     if not args.no_rtt:
         load_rtt(conn)
 

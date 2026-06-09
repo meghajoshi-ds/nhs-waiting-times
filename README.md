@@ -1,14 +1,15 @@
-# NHS England A&E and RTT Waiting Times — Analysis & Dashboard
+# UK NHS A&E and RTT Waiting Times — Analysis & Dashboard
 
 ![NHS waiting times dashboard](assets/dashboard.png)
 
-An end-to-end data project on **NHS England's published A&E and Referral-to-Treatment
-(RTT) waiting time statistics**. It ingests the raw NHS files into SQLite, runs
+An end-to-end data project on the UK's published NHS waiting-time statistics —
+**NHS England** (A&E + Referral-to-Treatment) and **NHS Scotland / Public Health
+Scotland** (A&E by health board). It ingests the raw files into SQLite, runs
 SQL + statistical analysis (seasonal decomposition, Mann-Kendall trend test,
 correlation), and serves an interactive **Plotly Dash** dashboard — including a
 **decision-support tool** that tells patients which providers are fastest and how
-many weeks they could save, plus a generator for **SEO-friendly static pages**
-(e.g. *"ENT waiting times in London"*).
+many weeks they could save, an **England-vs-Scotland** cross-border comparison, and
+a generator for **SEO-friendly static pages** (e.g. *"ENT waiting times in London"*).
 
 > *Analysed 5+ years of NHS England A&E and RTT waiting-time data across 237 trusts
 > using Python and SQL, identifying a statistically significant decline in 4-hour
@@ -31,9 +32,10 @@ many weeks they could save, plus a generator for **SEO-friendly static pages**
 | Dashboard | Dash | `app.py` |
 | SEO pages | static HTML generator | `generate_seo_pages.py` |
 
-**Data loaded:** 12,403 trust-month A&E rows (237 trusts, 60 months, Apr 2020–Mar 2025),
-187 months of national A&E time series (Aug 2010–Feb 2026), and 141,504 RTT
-incomplete-pathway rows (36 months, by provider × specialty).
+**Data loaded:** 12,403 England trust-month A&E rows (237 trusts), 187 months of
+England national A&E time series (Aug 2010–Feb 2026), 141,504 RTT incomplete-pathway
+rows (by provider × specialty), and **NHS Scotland A&E across 14 health boards,
+226 months back to 2007** (Public Health Scotland).
 
 ---
 
@@ -55,9 +57,12 @@ incomplete-pathway rows (36 months, by provider × specialty).
    NHS England regions.
 6. **RTT specialties** — national waiting-list size vs 18-week compliance, the worst
    specialties by 18-week breach, and a multi-select specialty trend explorer.
-7. **A&E ↔ RTT correlation** — trust-level scatter of A&E 4-hour vs RTT 18-week
+7. **🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland** — NHS Scotland A&E performance with an **England-vs-Scotland**
+   comparison, KPI cards, a 14-board ranking, a health-board explorer, and a
+   board × month heatmap (Public Health Scotland data).
+8. **A&E ↔ RTT correlation** — trust-level scatter of A&E 4-hour vs RTT 18-week
    performance with a fitted line and Pearson r / p-value.
-8. **ℹ️ Methodology** — data source, last-refresh date, update frequency, what each
+9. **ℹ️ Methodology** — data source, last-refresh date, update frequency, what each
    metric means, and why a personal wait may differ from the published figure.
 
 ---
@@ -133,6 +138,10 @@ python generate_seo_pages.py --base-url https://your-app.onrender.com
 - **Cross-dataset:** across 124 trusts, A&E 4-hour and RTT 18-week performance are
   **positively correlated (r ≈ 0.37, p < 0.001)** — trusts that struggle on
   emergency flow tend to struggle on elective waits too.
+- **England vs Scotland:** Scotland historically ran ~5–10 points ahead of England on
+  the 4-hour standard (≈88% in 2019), but both nations fell sharply after 2021 and
+  now sit in the **mid-to-high 60s%**. Within Scotland, island boards (Western Isles,
+  Orkney) lead at 93–96% while mainland urban boards (Lanarkshire) trail near 53%.
 
 *(Exact figures refresh automatically from whatever data is in the database.)*
 

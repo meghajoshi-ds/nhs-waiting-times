@@ -258,6 +258,100 @@ def rtt_national_chart():
     return _layout(fig, "National RTT waiting list size vs 18-week compliance")
 
 
+# ── Scotland ──────────────────────────────────────────────────────────────────
+SCOT_NAVY = "#0065BD"      # Scottish Government blue
+SCOT_DARK = "#002244"
+
+
+def scotland_performance_chart():
+    df = analysis.scotland_national("2008-01-01")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["pct_within_4hrs"], mode="lines", name="All A&E types",
+        line=dict(color=SCOT_NAVY, width=3, shape="spline", smoothing=0.4),
+        fill="tozeroy", fillcolor="rgba(0,101,189,0.07)",
+        hovertemplate="All types: %{y:.1f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["pct_within_4hrs_t1"], mode="lines",
+        name="Type 1 (major ED)",
+        line=dict(color=RED, width=1.8, shape="spline", smoothing=0.4),
+        hovertemplate="Type 1: %{y:.1f}%<extra></extra>"))
+    fig.add_hline(y=95, line=dict(color=GREY, dash="dash", width=1.5),
+                  annotation_text="95% target", annotation_position="top right")
+    _covid_band(fig)
+    _timeaxis(fig)
+    fig.update_yaxes(title="% seen within 4 hours", range=[40, 100], ticksuffix="%")
+    return _layout(fig, "Scotland A&E 4-hour performance (NHS Scotland)")
+
+
+def nations_comparison_chart():
+    df = analysis.nations_comparison("2011-07-01")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["england"], mode="lines", name="England",
+        line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
+        hovertemplate="England: %{y:.1f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=df["period"], y=df["scotland"], mode="lines", name="Scotland",
+        line=dict(color="#7A2982", width=3, shape="spline", smoothing=0.4),
+        hovertemplate="Scotland: %{y:.1f}%<extra></extra>"))
+    fig.add_hline(y=95, line=dict(color=GREY, dash="dash", width=1),
+                  annotation_text="95% target", annotation_position="top right")
+    _covid_band(fig)
+    _timeaxis(fig)
+    fig.update_yaxes(title="% A&E within 4 hours (all types)", range=[40, 100],
+                     ticksuffix="%")
+    return _layout(fig, "England vs Scotland — A&E 4-hour performance")
+
+
+def scotland_ranking_chart():
+    df = analysis.scotland_board_ranking().sort_values("avg_performance")
+    fig = go.Figure(go.Bar(
+        x=df["avg_performance"], y=df["hb_name"], orientation="h",
+        marker=dict(color=df["avg_performance"], colorscale="RdYlGn",
+                    cmin=40, cmax=95, line_width=0),
+        text=df["avg_performance"].round(1).astype(str) + "%", textposition="outside",
+        hovertemplate="NHS %{y}<br>%{x:.1f}% within 4h<extra></extra>"))
+    fig.add_vline(x=95, line=dict(color=RED, dash="dash"))
+    fig.update_xaxes(title="Avg 4-hour performance (last 12 months)", range=[0, 100],
+                     ticksuffix="%")
+    return _layout(fig, "NHS Scotland health boards ranked (12-month average)",
+                   height=480)
+
+
+def scotland_board_chart(hb_name):
+    df = analysis.scotland_board_timeseries(hb_name)
+    nat = analysis.scotland_national("2008-01-01")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=nat["period"], y=nat["pct_within_4hrs"], mode="lines",
+                             name="Scotland average",
+                             line=dict(color=GREY, width=1.8, dash="dot"),
+                             hovertemplate="Scotland: %{y:.1f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(x=df["period"], y=df["pct_within_4hrs"], mode="lines",
+                             name=f"NHS {hb_name}",
+                             line=dict(color=SCOT_NAVY, width=3, shape="spline",
+                                       smoothing=0.4),
+                             fill="tonexty", fillcolor="rgba(0,101,189,0.06)",
+                             hovertemplate="This board: %{y:.1f}%<extra></extra>"))
+    fig.add_hline(y=95, line=dict(color=RED, dash="dash", width=1))
+    _covid_band(fig)
+    _timeaxis(fig)
+    fig.update_yaxes(title="% within 4 hours", range=[0, 100], ticksuffix="%")
+    return _layout(fig, f"NHS {hb_name} — 4-hour performance vs Scotland average")
+
+
+def scotland_heatmap_chart():
+    df = analysis.scotland_board_heatmap()
+    pivot = df.pivot(index="hb_name", columns="period", values="pct")
+    pivot = pivot.reindex(pivot.mean(axis=1).sort_values().index)
+    fig = go.Figure(go.Heatmap(
+        z=pivot.values, x=[p.strftime("%b %y") for p in pivot.columns],
+        y=pivot.index, colorscale="RdYlGn", zmin=40, zmax=95, xgap=2, ygap=2,
+        colorbar=dict(title="% &lt;4h", ticksuffix="%"),
+        hovertemplate="NHS %{y}<br>%{x}: %{z:.1f}%<extra></extra>"))
+    return _layout(fig, "Performance by health board (last 24 months)", height=460)
+
+
 # ── Decision support ──────────────────────────────────────────────────────────
 def fastest_providers_chart(specialty, region="ALL", top_n=12):
     """Horizontal bar of the fastest providers, green=improving, red=worsening."""

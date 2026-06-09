@@ -34,6 +34,8 @@ SPECIALTIES = analysis.rtt_specialties()
 DEC_SPECIALTIES = decision.specialties()
 REGION_OPTIONS = decision.regions()
 REFRESH = decision.last_refresh()
+SCOT = analysis.scotland_kpis()
+SCOT_BOARDS = analysis.scotland_board_list()
 DEFAULT_SPECS = ["Trauma and Orthopaedic Service", "Ear Nose and Throat Service",
                  "Ophthalmology Service", "Gynaecology Service",
                  "General Surgery Service"]
@@ -395,17 +397,73 @@ def tab_methodology():
     ])
 
 
+# ── tab: Scotland ─────────────────────────────────────────────────────────────
+def tab_scotland():
+    yoy = SCOT["yoy"]
+    yoy_txt = f"{yoy:+.1f} pts" if yoy is not None else "n/a"
+    yoy_tone = "good" if (yoy or 0) >= 0 else "bad"
+    yoy_icon = "📈" if (yoy or 0) >= 0 else "📉"
+    return html.Div([
+        html.P("NHS Scotland A&E performance from Public Health Scotland — the same "
+               "4-hour standard as England, across 14 territorial health boards. "
+               "The comparison below puts the two nations side by side.",
+               className="lead"),
+        html.Div(className="kpi-row", children=[
+            kpi_card("Scotland 4-hour performance",
+                     f"{SCOT['latest_pct']:.1f}%", SCOT["latest_period"], "🏴󠁧󠁢󠁳󠁣󠁴󠁿"),
+            kpi_card("Change vs a year ago", yoy_txt, "all A&E types",
+                     yoy_icon, yoy_tone),
+            kpi_card("Best health board", f"{SCOT['best_board'][1]:.1f}%",
+                     f"NHS {SCOT['best_board'][0]}", "🏆", "good"),
+            kpi_card("Most pressured board", f"{SCOT['worst_board'][1]:.1f}%",
+                     f"NHS {SCOT['worst_board'][0]}", "⚠️", "bad"),
+            kpi_card("Health boards", f"{SCOT['n_boards']}",
+                     "territorial NHS boards", "🏥"),
+        ]),
+        html.Div(className="callout", children=[
+            html.B("🆚 Cross-border view:  "),
+            html.Span("Scotland historically outperformed England on the 4-hour "
+                      "standard, but both nations fell sharply after 2021. The chart "
+                      "below tracks them on the same axis — useful context whether "
+                      "you're benchmarking NHS Scotland or comparing systems.")]),
+        graph(charts.nations_comparison_chart()),
+        graph(charts.scotland_performance_chart()),
+        graph(charts.scotland_ranking_chart()),
+        html.Div(className="controls", children=[
+            html.Label("Explore a health board:"),
+            dcc.Dropdown(id="scot-board", options=SCOT_BOARDS,
+                         value="Lothian" if "Lothian" in SCOT_BOARDS
+                         else SCOT_BOARDS[0], clearable=False),
+        ]),
+        dcc.Loading(dcc.Graph(id="scot-board-graph",
+                    config={"displayModeBar": False}, className="card"),
+                    type="dot", color=BLUE),
+        graph(charts.scotland_heatmap_chart()),
+    ])
+
+
+@app.callback(Output("scot-board-graph", "figure"), Input("scot-board", "value"))
+def update_scotland(hb_name):
+    return charts.scotland_board_chart(hb_name or SCOT_BOARDS[0])
+
+
 # ── layout ────────────────────────────────────────────────────────────────────
 app.layout = html.Div(className="app", children=[
     html.Header(className="header", children=[
         html.Div([
-            html.H1("NHS England Waiting Times"),
-            html.P("A&E 4-hour performance and RTT 18-week waits · 2015–2026",
+            html.H1("UK NHS Waiting Times"),
+            html.P("A&E 4-hour performance & RTT 18-week waits · England + Scotland",
                    className="subtitle"),
         ]),
-        html.Div(className="header-stat", children=[
-            html.Span(f"{KPI['latest_pct']:.1f}%"),
-            html.Small(f"4-hr performance · {KPI['latest_period']}"),
+        html.Div(className="header-stats", children=[
+            html.Div(className="header-stat", children=[
+                html.Span(f"{KPI['latest_pct']:.1f}%"),
+                html.Small(f"🏴󠁧󠁢󠁥󠁮󠁧󠁿 England · {KPI['latest_period']}"),
+            ]),
+            html.Div(className="header-stat", children=[
+                html.Span(f"{SCOT['latest_pct']:.1f}%"),
+                html.Small(f"🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland · {SCOT['latest_period']}"),
+            ]),
         ]),
     ]),
     dcc.Tabs(id="tabs", value="decision", className="tabs", children=[
@@ -415,6 +473,7 @@ app.layout = html.Div(className="app", children=[
         dcc.Tab(label="🏨  Trust explorer", value="trust"),
         dcc.Tab(label="🗺️  Regional", value="regional"),
         dcc.Tab(label="🩺  RTT specialties", value="rtt"),
+        dcc.Tab(label="🏴󠁧󠁢󠁳󠁣󠁴󠁿  Scotland", value="scotland"),
         dcc.Tab(label="🔗  A&E ↔ RTT correlation", value="corr"),
         dcc.Tab(label="ℹ️  Methodology", value="method"),
     ]),
@@ -436,6 +495,7 @@ def render_tab(tab):
         "trust": tab_trust,
         "regional": tab_regional,
         "rtt": tab_rtt,
+        "scotland": tab_scotland,
         "corr": tab_correlation,
         "method": tab_methodology,
     }[tab]()

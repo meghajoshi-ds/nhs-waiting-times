@@ -53,12 +53,13 @@ body {
 @keyframes sheen { 0%,60% { left: -60%; } 100% { left: 140%; } }
 .header h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
 .header .subtitle { margin: 6px 0 0; opacity: 0.9; font-size: 14px; font-weight: 500; }
+.header-stats { display: flex; gap: 28px; z-index: 1; }
 .header-stat { text-align: right; z-index: 1; }
 .header-stat span {
-  font-size: 44px; font-weight: 800; display: block; line-height: 1;
+  font-size: 40px; font-weight: 800; display: block; line-height: 1;
   text-shadow: 0 2px 12px rgba(0,0,0,0.18);
 }
-.header-stat small { opacity: 0.9; font-weight: 500; }
+.header-stat small { opacity: 0.9; font-weight: 500; white-space: nowrap; }
 
 /* ── tabs ─────────────────────────────────────────────────────────────────── */
 .tabs {
