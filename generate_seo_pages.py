@@ -78,6 +78,7 @@ def render_page(title, meta_desc, h1, intro, table_rows, faqs, canonical,
 <h1>{esc(h1)}</h1>
 <p class="updated">Data: NHS England RTT · last updated {esc(refreshed)}</p>
 <p class="intro">{intro}</p>
+<p class="disclaimer">ⓘ {esc(decision.DISCLAIMER)}</p>
 <table>
 <thead><tr><th>Provider</th><th>Region</th><th>Median wait</th>
 <th>vs national</th><th>6-month trend</th></tr></thead>
@@ -227,6 +228,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:nth-child(even) td{background:#f4f8fb}
 details{background:#fff;border-radius:8px;padding:12px 16px;margin:8px 0;
 box-shadow:0 2px 10px rgba(0,48,135,.06)}summary{font-weight:600;cursor:pointer;color:#003087}
+.disclaimer{background:#fff7e6;border:1px solid #ffe2a8;border-radius:8px;
+padding:10px 14px;font-size:13px;color:#8a6d3b;margin:10px 0}
 .grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .grid a{color:#005EB8;text-decoration:none;font-weight:600}.grid .w{color:#768692;font-weight:400;font-size:13px}
 section{background:#fff;border-radius:10px;padding:14px 20px;margin:14px 0;box-shadow:0 4px 20px rgba(0,48,135,.06)}

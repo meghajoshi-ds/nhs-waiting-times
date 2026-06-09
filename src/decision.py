@@ -65,6 +65,56 @@ def last_refresh():
     }
 
 
+# Standing disclaimer shown wherever an estimated wait is presented.
+DISCLAIMER = ("Estimated from recent NHS England RTT reporting (median waits). "
+              "Actual waits vary by clinical priority, referral and individual "
+              "circumstances — use as a guide, not a guarantee.")
+
+
+def coverage():
+    """Above-the-fold trust indicators: how much real data backs the tool."""
+    P = latest_period()
+    row = _q("""SELECT COUNT(DISTINCT provider_code) AS hospitals,
+                       COUNT(DISTINCT treatment_function) AS specialties
+                FROM rtt_monthly
+                WHERE period = :p AND treatment_function != 'Total'""",
+             {"p": P}).iloc[0]
+    return {
+        "hospitals": int(row["hospitals"]),
+        "specialties": int(row["specialties"]),
+        "regions": len(REGION_NAMES),
+        "latest_month": pd.to_datetime(P).strftime("%B %Y"),
+    }
+
+
+def compare(specialty, name_a, name_b, region="ALL"):
+    """
+    Head-to-head: weeks saved by switching from the slower to the faster of two
+    named providers for a specialty. Returns the faster/slower split and saving.
+    """
+    df = provider_recommendations(specialty, "ALL")
+    if df.empty:
+        return None
+    df["title"] = df["provider_name"].str.title()
+    picks = {}
+    for label, name in (("a", name_a), ("b", name_b)):
+        m = df[df["title"] == name]
+        if not m.empty:
+            picks[label] = m.iloc[0]
+    if len(picks) < 2:
+        return None
+    a, b = picks["a"], picks["b"]
+    faster, slower = (a, b) if a["median_wait_wks"] <= b["median_wait_wks"] else (b, a)
+    return {
+        "faster_name": faster["title"], "slower_name": slower["title"],
+        "faster_wait": float(faster["median_wait_wks"]),
+        "slower_wait": float(slower["median_wait_wks"]),
+        "weeks_saved": round(float(slower["median_wait_wks"]
+                                   - faster["median_wait_wks"]), 1),
+        "faster_dir": faster["direction"], "slower_dir": slower["direction"],
+    }
+
+
 def specialties(min_waiting=100000):
     """Treatment functions with meaningful national volume (for dropdowns)."""
     df = _q("""SELECT treatment_function, SUM(total_waiting) tot

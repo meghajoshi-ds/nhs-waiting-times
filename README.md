@@ -1,6 +1,8 @@
 # UK NHS A&E and RTT Waiting Times — Analysis & Dashboard
 
-![NHS waiting times dashboard](assets/dashboard.png)
+### 🔗 [**Live demo →**](https://nhs-waiting-times.onrender.com)
+
+[![NHS waiting times dashboard](assets/dashboard.png)](https://nhs-waiting-times.onrender.com)
 
 An end-to-end data project on the UK's published NHS waiting-time statistics —
 **NHS England** (A&E + Referral-to-Treatment) and **NHS Scotland / Public Health
@@ -73,10 +75,15 @@ The headline upgrade over a plain dashboard: instead of just *showing* "Provider
 18 weeks", the tool **answers "what should I do?"**
 
 - **Fastest nearby providers** — ranked shortest-wait-first within a chosen region.
+- **Head-to-head comparison** — pick any two hospitals: *"Switching from B (17 weeks) to A (6 weeks) could save approximately 12 weeks."*
 - **% difference from the national average** — is this provider better or worse, and by how much.
 - **Estimated weeks saved by switching** — fastest provider vs the regional average.
 - **Improving vs worsening** — every provider's 6-month median-wait trend (▼ improving / ▲ worsening).
 - **Percentile ranking** — "faster than 92% of providers".
+- **Trust indicators above the fold** — last refresh date, number of hospitals (152) and
+  specialties (23), and the data source, so users see it's real, current NHS data.
+- **Honest uncertainty** — a standing disclaimer that figures are estimates from RTT
+  reporting and actual waits vary by clinical priority and individual circumstances.
 
 All of this is built in `src/decision.py` and surfaced on the *Find shortest wait* tab.
 

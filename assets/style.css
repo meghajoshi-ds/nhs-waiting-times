@@ -121,6 +121,29 @@ body {
 .controls label { font-weight: 600; display: block; margin-bottom: 9px; color: var(--nhs-dark); }
 .Select-control, .is-focused > .Select-control { border-radius: 9px !important; }
 
+/* ── trust bar (above the fold) ───────────────────────────────────────────── */
+.trustbar {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+}
+.trust-item {
+  display: flex; align-items: center; gap: 7px; flex: 1 1 auto;
+  background: var(--card); border-radius: 10px; padding: 10px 14px;
+  box-shadow: var(--shadow); border-left: 3px solid var(--nhs-green);
+  font-size: 13px; animation: rise 0.5s ease both;
+}
+.trust-ic { font-size: 16px; }
+.trust-lbl { color: var(--grey); font-weight: 500; }
+.trust-val { color: var(--nhs-dark); font-weight: 700; margin-left: auto; }
+
+/* ── disclaimer ───────────────────────────────────────────────────────────── */
+.disclaimer {
+  background: #fff7e6; border: 1px solid #ffe2a8; border-radius: 8px;
+  padding: 9px 14px; margin-bottom: 16px; font-size: 12.5px; color: #8a6d3b;
+  line-height: 1.45;
+}
+.callout.good { background: linear-gradient(120deg, #e7f6ec, #f0fbf3);
+  border-left-color: var(--nhs-green); }
+
 /* ── callout ──────────────────────────────────────────────────────────────── */
 .callout {
   background: linear-gradient(120deg, #e8f1fb, #f0f9fc);

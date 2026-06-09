@@ -34,6 +34,7 @@ SPECIALTIES = analysis.rtt_specialties()
 DEC_SPECIALTIES = decision.specialties()
 REGION_OPTIONS = decision.regions()
 REFRESH = decision.last_refresh()
+COVERAGE = decision.coverage()
 SCOT = analysis.scotland_kpis()
 SCOT_BOARDS = analysis.scotland_board_list()
 DEFAULT_SPECS = ["Trauma and Orthopaedic Service", "Ear Nose and Throat Service",
@@ -199,8 +200,25 @@ def update_rtt(specialties):
 
 
 # ── tab: find the shortest wait (decision support) ────────────────────────────
+def trust_bar():
+    """Above-the-fold trust indicators: this is real, current NHS data."""
+    items = [
+        ("🗓️", "Last updated", COVERAGE["latest_month"]),
+        ("🏥", "Hospitals", f"{COVERAGE['hospitals']}"),
+        ("🩺", "Specialties", f"{COVERAGE['specialties']}"),
+        ("🗺️", "NHS regions", f"{COVERAGE['regions']}"),
+        ("🏛️", "Source", "NHS England RTT"),
+    ]
+    return html.Div(className="trustbar", children=[
+        html.Div(className="trust-item", children=[
+            html.Span(ic, className="trust-ic"),
+            html.Span(lbl, className="trust-lbl"),
+            html.Span(val, className="trust-val")]) for ic, lbl, val in items])
+
+
 def tab_decision():
     return html.Div([
+        trust_bar(),
         html.P("Don't just see the wait — act on it. Pick a specialty and (optionally) "
                "your region to find the fastest providers, how far they beat the "
                "national average, whether they're improving, and the weeks you could "
@@ -262,9 +280,16 @@ def update_decision(specialty, region):
         "Waiting list": df["total_waiting"].map("{:,.0f}".format),
     })
 
+    # head-to-head defaults: fastest vs the median-ranked provider in scope
+    names = df["provider_name"].str.title().tolist()
+    default_a = names[0]
+    default_b = names[len(names) // 2] if len(names) > 1 else names[0]
+
     return html.Div([
         html.Div(className="callout", children=[
             html.B("💡 Recommendation:  "), html.Span(headline)]),
+        html.Div(className="disclaimer", children=[
+            html.Span("ⓘ "), html.Span(decision.DISCLAIMER)]),
         html.Div(className="kpi-row", children=[
             kpi_card("National avg wait", f"{s['national_avg']:.0f} wks",
                      "patient-weighted median", "🇬🇧"),
@@ -277,6 +302,17 @@ def update_decision(specialty, region):
                      "good" if s["weeks_saved"] >= 1 else ""),
         ]),
         graph(charts.fastest_providers_chart(specialty, region)),
+        # ── head-to-head hospital comparison ─────────────────────────────────
+        html.Div(className="controls", children=[
+            html.Label("⚖️  Compare two hospitals head-to-head"),
+            html.Div(className="grid-2", children=[
+                dcc.Dropdown(id="cmp-a", options=names, value=default_a,
+                             clearable=False),
+                dcc.Dropdown(id="cmp-b", options=names, value=default_b,
+                             clearable=False),
+            ]),
+        ]),
+        dcc.Loading(html.Div(id="compare-output"), type="dot", color=BLUE),
         graph(charts.specialty_trend_chart(specialty)),
         html.Div(className="card", children=[
             html.H4(f"All providers · {spec_short} · {s['region']} "
@@ -298,6 +334,32 @@ def update_decision(specialty, region):
                      "color": "#DA291C", "fontWeight": "600"},
                     {"if": {"row_index": "odd"}, "backgroundColor": "#f4f8fb"}]),
         ]),
+    ])
+
+
+@app.callback(Output("compare-output", "children"),
+              Input("cmp-a", "value"), Input("cmp-b", "value"),
+              dash.dependencies.State("dec-specialty", "value"))
+def update_compare(name_a, name_b, specialty):
+    if not name_a or not name_b or name_a == name_b:
+        return html.Div("Pick two different hospitals above to compare them.",
+                        className="card", style={"color": "#768692"})
+    c = decision.compare(specialty, name_a, name_b)
+    if c is None:
+        return html.Div("These providers can't be compared for this specialty.",
+                        className="card", style={"color": "#768692"})
+    if c["weeks_saved"] >= 1:
+        verdict = (f"Switching from {c['slower_name']} "
+                   f"({c['slower_wait']:.0f} weeks) to {c['faster_name']} "
+                   f"({c['faster_wait']:.0f} weeks) could save approximately "
+                   f"{c['weeks_saved']:.0f} weeks.")
+    else:
+        verdict = (f"{c['faster_name']} and {c['slower_name']} have a near-identical "
+                   f"median wait (about {c['faster_wait']:.0f} weeks).")
+    return html.Div([
+        html.Div(className="callout good", children=[
+            html.B("⚖️ Head-to-head:  "), html.Span(verdict)]),
+        graph(charts.compare_providers_chart(specialty, name_a, name_b)),
     ])
 
 

@@ -380,6 +380,30 @@ def fastest_providers_chart(specialty, region="ALL", top_n=12):
                         f"{region_lbl}", height=460)
 
 
+def compare_providers_chart(specialty, name_a, name_b):
+    """Two-provider head-to-head bar with the weeks-saved gap annotated."""
+    c = decision.compare(specialty, name_a, name_b)
+    if c is None:
+        return _layout(go.Figure().add_annotation(
+            text="Pick two different providers to compare", showarrow=False),
+            height=260)
+    names = [c["slower_name"], c["faster_name"]]
+    waits = [c["slower_wait"], c["faster_wait"]]
+    fig = go.Figure(go.Bar(
+        x=waits, y=names, orientation="h",
+        marker=dict(color=[RED, GREEN], line_width=0),
+        text=[f"{w:.0f} wks" for w in waits], textposition="outside",
+        hovertemplate="%{y}: %{x:.1f} weeks<extra></extra>"))
+    fig.update_xaxes(title="Median wait (weeks)", range=[0, max(waits) * 1.25])
+    fig.update_layout(yaxis=dict(autorange="reversed"))
+    fig.add_annotation(x=max(waits), y=0.5, xref="x", yref="paper",
+                       text=f"↓ save ~{c['weeks_saved']:.0f} weeks",
+                       showarrow=False, font=dict(color=GREEN, size=14),
+                       xanchor="right")
+    return _layout(fig, f"Head-to-head · {specialty.replace(' Service','')}",
+                   height=260)
+
+
 def specialty_trend_chart(specialty):
     """National median wait + 18-week compliance trend for a specialty."""
     df = decision.specialty_national_trend(specialty)
